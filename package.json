@@ -1,0 +1,24 @@
+{
+  "name": "pdf-scanner",
+  "version": "1.0.0",
+  "description": "Scan PDFs into a local knowledge base and ask questions about them — no API keys required for scanning and search.",
+  "type": "module",
+  "scripts": {
+    "ingest": "node src/ingest.js",
+    "ask": "node src/ask.js",
+    "chat": "node src/chat.js",
+    "web": "node src/server.js"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "groq-sdk": "^0.9.0",
+    "multer": "^2.2.0",
+    "pdf-parse": "^1.1.1",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^25.3.0"
+  }
+}

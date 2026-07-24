@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PLC Instructor</title>
+<link rel="stylesheet" href="/style.css">
+<script>
+  // Apply saved theme before first paint to avoid a flash
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+  if (localStorage.getItem('fx') === 'off') document.documentElement.dataset.fx = 'off';
+</script>
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="13 2 6 13 12 13 11 22 18 11 12 11 13 2"/>
+      </svg>
+    </div>
+    <div>
+      <h1>PLC Instructor</h1>
+      <div class="tag">Train. Drill. Get job-ready.</div>
+    </div>
+  </div>
+
+  <button class="nav-item active" id="navLearn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span>Learn</span>
+  </button>
+  <button class="nav-item" id="navQuiz">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    <span>Quiz</span>
+  </button>
+  <button class="nav-item" id="navProgress">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Progress</span>
+  </button>
+
+  <div class="side-section">
+    <span>Library</span>
+    <span class="side-section-right">
+      <span id="libCount"></span>
+      <button id="libCollapseBtn" title="Collapse library list" aria-expanded="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </span>
+  </div>
+  <div id="libraryList"><div class="lib-empty">Loading…</div></div>
+
+  <button id="addPdfBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <span>Add PDF</span>
+  </button>
+  <input type="file" id="file" accept="application/pdf">
+
+  <div class="side-footer">
+    <button id="themeBtn" title="Toggle theme">
+      <svg id="themeIconMoon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span id="themeLabel">Theme</span>
+    </button>
+    <span id="groqDot"><span class="dot"></span><span id="groqLabel">AI</span></span>
+  </div>
+</aside>
+
+<div id="main">
+  <header id="topbar">
+    <div>
+      <div id="modeTitle">Learn</div>
+      <div id="modeSub">Ask anything — answers cite pages from your library</div>
+    </div>
+    <div id="quizControls">
+      <span id="typeChips" style="display:flex;gap:8px;flex-wrap:wrap"></span>
+      <span id="examStatus"></span>
+      <button id="examBtn">Start exam</button>
+      <span id="scorePill"></span>
+    </div>
+    <button id="clearBtn" title="Clear this conversation and start new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      <span>Clear</span>
+    </button>
+  </header>
+
+  <div id="content">
+    <div id="chatLearn" class="chatStream"></div>
+    <div id="chatQuiz" class="chatStream" style="display:none"></div>
+    <div id="progressView"></div>
+  </div>
+
+  <footer id="composer">
+    <div id="inputRow">
+      <input id="q" placeholder="Ask a question about your documents…" autocomplete="off">
+      <button id="newQBtn">New question</button>
+      <button id="sendBtn">Send</button>
+    </div>
+  </footer>
+</div>
+
+<script src="/app.js"></script>
+<script type="module" src="/fx.js"></script>
+</body>
+</html>
