@@ -15,7 +15,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import express from 'express';
 import multer from 'multer';
-import { ingestPdf, slugify, loadIndexes, search, formatContext } from './lib.js';
+import { ingestPdf, slugify, loadIndexes, search, formatContext, DEFAULT_SUBJECT } from './lib.js';
 import { answerWithGroq, quizQuestion, gradeAnswer, revealAnswer, generateStructured, rewriteQuery, groqAvailable } from './llm.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -36,25 +36,29 @@ app.use(express.json());
 app.use(express.static(path.join(ROOT, 'public')));
 
 app.get('/api/documents', (req, res) => {
-  const docs = loadIndexes().map((d) => ({
+  const allDocs = loadIndexes();
+  const docs = allDocs.map((d) => ({
     name: d.name,
     title: d.title,
+    subject: d.subject,
     pages: d.pages,
     chunks: d.chunks.length,
   }));
-  res.json({ docs, groq: groqAvailable() });
+  const subjects = [...new Set([DEFAULT_SUBJECT, ...allDocs.map((d) => d.subject)])].sort();
+  res.json({ docs, subjects, groq: groqAvailable() });
 });
 
 app.post('/api/ingest', upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No PDF uploaded' });
   const title = (req.body.title || '').trim()
     || req.file.originalname.replace(/\.pdf$/i, '');
+  const subject = (req.body.subject || '').trim() || DEFAULT_SUBJECT;
   // Keep the PDF under a stable name so /pdf/:slug can serve it later
   const dest = path.join(UPLOAD_DIR, `${slugify(title)}.pdf`);
   try {
     fs.renameSync(req.file.path, dest);
     const started = Date.now();
-    const result = await ingestPdf(dest, title);
+    const result = await ingestPdf(dest, title, subject);
     if (result.duplicate) {
       fs.rm(dest, { force: true }, () => {});
       return res.status(409).json({
@@ -82,6 +86,7 @@ app.get('/pdf/:slug', (req, res) => {
 
 app.post('/api/ask', async (req, res) => {
   const question = (req.body.question || '').trim();
+  const subject = (req.body.subject || '').trim() || null;
   if (!question) return res.status(400).json({ error: 'question is required' });
   try {
     const history = Array.isArray(req.body.history) ? req.body.history.slice(-8) : [];
@@ -93,7 +98,7 @@ app.post('/api/ask', async (req, res) => {
       try { searchQuery = await rewriteQuery(question, history); } catch { /* use raw question */ }
     }
 
-    const hits = await search(searchQuery);
+    const hits = await search(searchQuery, 10, subject);
     const sources = [...new Set(hits.map((h) => `p. ${h.pageStart}`))];
     const refs = hits.map((h) => ({
       doc: h.doc,
@@ -120,8 +125,9 @@ const toRefs = (hits) => hits.map((h) => ({
 }));
 
 // Pick a random run of consecutive chunks from a random document
-function randomRefs(count = 3) {
-  const docs = loadIndexes();
+function randomRefs(count = 3, subject = null) {
+  let docs = loadIndexes();
+  if (subject) docs = docs.filter((d) => d.subject === subject);
   if (docs.length === 0) return [];
   const doc = docs[Math.floor(Math.random() * docs.length)];
   const start = Math.floor(Math.random() * Math.max(1, doc.chunks.length - count));
@@ -239,6 +245,7 @@ app.post('/api/quiz', async (req, res) => {
   if (!groqAvailable()) return res.status(400).json({ error: 'Quiz mode requires GROQ_API_KEY or XAI_API_KEY' });
   try {
     const topic = (req.body.topic || '').trim();
+    const subject = (req.body.subject || '').trim() || null;
     const type = QUIZ_TYPES.includes(req.body.type) ? req.body.type : 'free';
     const clientAvoid = Array.isArray(req.body.avoid) ? req.body.avoid.slice(-10) : [];
 
@@ -247,8 +254,10 @@ app.post('/api/quiz', async (req, res) => {
     const bankAvoid = readBank().filter((e) => e.type === type).slice(-15).map((e) => e.question);
     const avoid = [...new Set([...bankAvoid, ...clientAvoid])].slice(-12);
 
-    const refs = topic ? toRefs(await search(topic, 6)) : randomRefs();
-    if (refs.length === 0) return res.status(400).json({ error: 'No documents scanned yet' });
+    const refs = topic ? toRefs(await search(topic, 6, subject)) : randomRefs(3, subject);
+    if (refs.length === 0) {
+      return res.status(400).json({ error: subject ? `No documents scanned for subject "${subject}".` : 'No documents scanned yet' });
+    }
     const context = formatContext(refs);
 
     if (type === 'free') {

@@ -230,7 +230,10 @@ const SYSTEM_PROMPT = [
   '  task — just answer it.',
   '',
   'Always cite page numbers from the excerpt headers (e.g. "p. 87") so the student can read',
-  'more. If the excerpts only partially cover the question, say what is missing.',
+  'more. If the excerpts only partially cover the question, say what is missing. If the',
+  'excerpts do not address the question at all, say so plainly instead of answering from',
+  'general knowledge — the student may have the wrong subject selected, so suggest they',
+  'check the subject filter or switch to "All subjects".',
   DISAGREEMENT_RULE,
 ].join('\n');
 

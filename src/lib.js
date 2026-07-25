@@ -28,6 +28,7 @@ const EMBED_MODEL = 'Xenova/bge-base-en-v1.5';
 const QUERY_PREFIX = 'Represent this sentence for searching relevant passages: ';
 const RERANK_MODEL = 'Xenova/ms-marco-MiniLM-L-6-v2';
 const RETRIEVE_K = 30; // hybrid-search candidates handed to the reranker
+export const DEFAULT_SUBJECT = 'PLC / Automation';
 
 let embedderPromise = null;
 function getEmbedder() {
@@ -204,7 +205,8 @@ export function loadIndexes() {
       docs.push(cached.data);
       continue;
     }
-    const data = { name: f.replace(/\.json$/, ''), ...JSON.parse(fs.readFileSync(full, 'utf8')) };
+    const parsed = JSON.parse(fs.readFileSync(full, 'utf8'));
+    const data = { name: f.replace(/\.json$/, ''), subject: DEFAULT_SUBJECT, ...parsed };
     indexCache.set(f, { mtimeMs: stat.mtimeMs, size: stat.size, data });
     docs.push(data);
   }
@@ -233,8 +235,14 @@ function queryTokens(question) {
   return [...new Set(raw)].filter((t) => !STOPWORDS.has(t) && (t.length >= 3 || /\d/.test(t)));
 }
 
-export async function search(question, topK = 10) {
+export async function search(question, topK = 10, subject = null) {
   let docs = loadIndexes();
+  if (subject) {
+    docs = docs.filter((d) => d.subject === subject);
+    if (docs.length === 0) {
+      throw new Error(`No documents scanned for subject "${subject}".`);
+    }
+  }
   if (docs.length === 0) {
     throw new Error('No scanned documents yet. Run: npm run ingest -- "<path-to-pdf>"');
   }
@@ -300,7 +308,8 @@ export function slugify(title) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-export async function ingestPdf(pdfPath, title, onProgress) {
+export async function ingestPdf(pdfPath, title, subject, onProgress) {
+  const resolvedSubject = (subject || '').trim() || DEFAULT_SUBJECT;
   const contentHash = fileHash(pdfPath);
   let slug = slugify(title);
 
@@ -329,9 +338,9 @@ export async function ingestPdf(pdfPath, title, onProgress) {
     onProgress?.(Math.min(i + 16, texts.length), texts.length);
   }
 
-  saveIndex(slug, { title, source: path.resolve(pdfPath), pages: pages.length, contentHash }, chunks, embeddings);
+  saveIndex(slug, { title, source: path.resolve(pdfPath), pages: pages.length, contentHash, subject: resolvedSubject }, chunks, embeddings);
   updateManifest(slug, title, contentHash);
-  return { slug, title, pages: pages.length, chunks: chunks.length };
+  return { slug, title, subject: resolvedSubject, pages: pages.length, chunks: chunks.length };
 }
 
 export function formatContext(hits) {
