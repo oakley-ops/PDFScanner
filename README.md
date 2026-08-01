@@ -66,3 +66,4 @@ src/server.js  Express API: ask / quiz / curriculum / progress / pdf serving
 public/        index.html + style.css + app.js (all grading logic client-side)
 index/         vector indexes    uploads/  source PDFs    data/  question bank
 ```
+#PDFScanner
