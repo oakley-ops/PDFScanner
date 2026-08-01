@@ -67,3 +67,4 @@ public/        index.html + style.css + app.js (all grading logic client-side)
 index/         vector indexes    uploads/  source PDFs    data/  question bank
 ```
 #PDFScanner
+# PDFScanner
