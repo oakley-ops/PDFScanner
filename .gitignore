@@ -3,3 +3,4 @@ index/
 uploads/
 .env
 data/
+.DS_Store
